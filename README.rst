@@ -2,15 +2,12 @@ About
 -----
 * This project is aimed at disrupting services in an effort to test High Availability.
 * Currently the scope of this effort is limited to the validation of Galera and RabbitMQ.
-* The disruptor is only one part of the overall picture. Rally is used to execute traffic
-against the environment. The idea is to take a container/node offline while continually
-building nova instances through the use of Rally.
+* The disruptor is only one part of the overall picture. Rally is used to execute traffic against the environment. The idea is to take a container/node offline while continually building nova instances through the use of Rally.
 
 Dir
 -----
 * disruptor.py is the primary tool used for disrupting the RabbitMQ and Galera clusters.
-* ./rally_tasks/nova_create_delete.yaml is the task rally will run. It builds and deletes
-200 instances and tracks the success rate.
+* ./rally_tasks/nova_create_delete.yaml is the task rally will run. It builds and deletes 200 instances and tracks the success rate.
 
 Dependencies
 -----
