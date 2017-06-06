@@ -89,7 +89,9 @@ def args(arg_list):
 
 
 def read_inventory(inventory_file):
-    """Parse inventory file into a python dictionary"""
+    """Parse inventory file into a python dictionary
+    :param inventory_file -- indicates the location of inventory file
+    """
     with open(inventory_file, 'r') as f:
         inventory = json.load(f)
     return inventory
@@ -98,6 +100,8 @@ def read_inventory(inventory_file):
 def get_similar_groups(target_group, inventory):
     """
     Find group suggestions
+    :param target_group: Service to be disrupted
+    :param inventory: Parsed inventory file
     """
     suggestions = []
     for key in inventory.keys():
@@ -107,7 +111,10 @@ def get_similar_groups(target_group, inventory):
 
 
 def get_containers(target_group, inventory):
-    """Get container names in the relevant group"""
+    """Get container names in the relevant group
+    :param target_group: Service to be disrupted
+    :param inventory: Parsed inventory file
+    """
 
     group = inventory.get(target_group, None)
 
@@ -126,8 +133,12 @@ def get_containers(target_group, inventory):
 
 def rolling_restart(containers, inventory, aio,  wait=120):
     """Restart containers in numerical order, one at a time.
-    wait is the number of seconds to wait between stopping and starting a
-    container
+    :param wait: is the number of seconds to wait between stopping and
+    starting a container
+    :param containers: The specific containers to disrupt based on service
+    :param inventory: Parsed inventory file
+    :param aio: This is a flag to determine if the deployment is an aio
+    which determines if the host is localhost or looks for it in inventory
     """
     # Grab a handle to /dev/null so we don't pollute console output with
     # Ansible stuff
@@ -137,8 +148,6 @@ def rolling_restart(containers, inventory, aio,  wait=120):
             host = 'localhost'
         else:
             host = inventory['_meta']['hostvars'][container]['physical_host']
-
-        print container, host
         stop_cmd = STOP_TEMPLATE.format(container=container, host=host)
         logger.info(("Stopping {container}".format(container=container)))
         subprocess.check_call(stop_cmd, shell=True, stdout=FNULL,

@@ -1,0 +1,16 @@
+---
+  NovaServers.boot_and_delete_server:
+    -
+      args:
+        flavor:
+            name: "tempest1"
+        image:
+            name: "cirros"
+      runner:
+        type: "constant"
+        times: 200
+        concurrency: 1
+      context:
+        users:
+          tenants: 1
+          users_per_tenant: 1
