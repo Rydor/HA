@@ -37,6 +37,7 @@ STOP_TEMPLATE = 'ansible -i inventory -m shell -a\
 START_TEMPLATE = 'ansible -i inventory -m shell -a\
         "lxc-start -dn {container}" {host}'
 
+supported_services = ['rabbitmq', 'galera']
 
 def configure_logging():
     logger.setLevel(logging.INFO)
@@ -64,18 +65,25 @@ def args(arg_list):
         epilog='Licensed "Apache 2.0"')
 
     parser.add_argument(
+        '--aio',
+        help='This indicates your deployment is an All In One',
+        action='store_true'
+    )
+
+    parser.add_argument(
         '-s',
         '--service',
         help='Name of the service to rolling restart.',
         required=True,
         default=None,
-        choices=['rabbitmq', 'galera']
+        choices=supported_services
     )
 
     parser.add_argument(
-        '--aio',
-        help="AIO flag",
-        action="store_true"
+        '--show',
+        help='Show which services will be restarted, but take no action',
+        action='store_true'
+
     )
 
     parser.add_argument(
@@ -132,7 +140,7 @@ def get_containers(target_group, inventory):
     return containers
 
 
-def rolling_restart(containers, inventory, aio,  wait=120):
+def rolling_restart(containers, inventory, aio, wait=120):
     """Restart containers in numerical order, one at a time.
     :param wait: is the number of seconds to wait between stopping and
     starting a container
@@ -166,18 +174,41 @@ def rolling_restart(containers, inventory, aio,  wait=120):
         time.sleep(wait / 2)
 
 
+def show_services_only(containers, aio, wait):
+    """Output the services that will be restarted once --show is not passed.
+    Also output if the deployment lab is an All In One and what the wait
+    time is.
+    :param wait: is the number of seconds to wait between stopping and
+    starting a container
+    :param containers: The specific containers to disrupt based on service
+    :param aio: This is a flag to determine if the deployment is an aio
+    which determines if the host is localhost or looks for it in inventory
+    :return: Output what would be executed but does not execute the
+    rolling_restart.
+    """
+    if aio:
+        logger.info("Your deployment is an All In One")
+    container_list = map(lambda x: x.encode('utf-8'), containers)
+    container_str = ', '.join(container_list)
+    logger.info("We will be stopping {container} for {wait} and then "
+                "restarting them.".format(container=container_str, wait=wait))
+
+
 def main():
     all_args = args(sys.argv[1:])
     service = all_args['service']
     wait = all_args['wait']
     aio = all_args['aio']
+    show = all_args['show']
 
     configure_logging()
-
     inventory = read_inventory(INVENTORY_FILE)
     containers = get_containers(service, inventory)
 
-    rolling_restart(containers, inventory, aio, wait)
+    if show:
+        show_services_only(containers, aio, wait)
+    else:
+        rolling_restart(containers, inventory, aio, wait)
 
 if __name__ == "__main__":
     main()
