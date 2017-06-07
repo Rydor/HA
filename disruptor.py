@@ -38,6 +38,8 @@ START_TEMPLATE = 'ansible -i inventory -m shell -a\
         "lxc-start -dn {container}" {host}'
 
 supported_services = ['rabbitmq', 'galera']
+DEFAULT_WAIT = 120
+
 
 def configure_logging():
     logger.setLevel(logging.INFO)
@@ -74,6 +76,8 @@ def args(arg_list):
         '-s',
         '--service',
         help='Name of the service to rolling restart.',
+        metavar='N',
+        nargs='+',
         required=True,
         default=None,
         choices=supported_services
@@ -90,8 +94,8 @@ def args(arg_list):
         '-w',
         '--wait',
         help=("Number of seconds to wait between stopping and starting. "
-              "Default: 120"),
-        default=120,
+              "Default: {0}".format(DEFAULT_WAIT)),
+        default=DEFAULT_WAIT,
     )
 
     return vars(parser.parse_args(arg_list))
@@ -119,7 +123,7 @@ def get_similar_groups(target_group, inventory):
     return suggestions
 
 
-def get_containers(target_group, inventory):
+def get_containers_by_group(target_group, inventory):
     """Get container names in the relevant group
     :param target_group: Service to be disrupted
     :param inventory: Parsed inventory file
@@ -137,6 +141,13 @@ def get_containers(target_group, inventory):
 
     containers = group['hosts']
     containers.sort()
+    return containers
+
+
+def get_containers(services, inventory):
+    containers = []
+    for i in services:
+        containers += get_containers_by_group(i, inventory)
     return containers
 
 
@@ -158,7 +169,7 @@ def rolling_restart(containers, inventory, aio, wait=120):
         else:
             host = inventory['_meta']['hostvars'][container]['physical_host']
         stop_cmd = STOP_TEMPLATE.format(container=container, host=host)
-        logger.info(("Stopping {container}".format(container=container)))
+        logger.info("Stopping {container}".format(container=container))
         subprocess.check_call(stop_cmd, shell=True, stdout=FNULL,
                               stderr=subprocess.STDOUT)
 
