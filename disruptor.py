@@ -170,6 +170,7 @@ def rolling_restart(containers, inventory, aio, show, wait=120):
     starting a container
     :param containers: The specific containers to disrupt based on service
     :param inventory: Parsed inventory file
+    :param show: Only show what will be executed. Do not execute restarts.
     :param aio: This is a flag to determine if the deployment is an aio
     which determines if the host is localhost or looks for it in inventory
     """
