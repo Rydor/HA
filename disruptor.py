@@ -164,7 +164,7 @@ def get_containers(services, inventory, multiple):
     return containers
 
 
-def rolling_restart(containers, inventory, aio, wait=120):
+def rolling_restart(containers, inventory, aio, show, wait=120):
     """Restart containers in numerical order, one at a time.
     :param wait: is the number of seconds to wait between stopping and
     starting a container
@@ -175,51 +175,34 @@ def rolling_restart(containers, inventory, aio, wait=120):
     """
     # Grab a handle to /dev/null so we don't pollute console output with
     # Ansible stuff
-    FNULL = open(os.devnull, 'w')
-    for container in containers:
-        if aio:
-            host = 'localhost'
-        else:
-            host = inventory['_meta']['hostvars'][container]['physical_host']
-        stop_cmd = STOP_TEMPLATE.format(container=container, host=host)
-        logger.info("Stopping {container}".format(container=container))
-        subprocess.check_call(stop_cmd, shell=True, stdout=FNULL,
-                              stderr=subprocess.STDOUT)
+    container_list = map(lambda x: x.encode('utf-8'), containers)
+    container_str = ', '.join(container_list)
+    logger.info("The following containers; {container} will be stopped for "
+                "{wait} and then restarted one after another.".format
+                (container=container_str, wait=wait))
+    if not show:
+        FNULL = open(os.devnull, 'w')
+        for container in containers:
+            if aio:
+                host = 'localhost'
+                logger.info("Your deployment is an All In One")
+            else:
+                host = inventory['_meta']['hostvars'][container]['physical_host']
+            stop_cmd = STOP_TEMPLATE.format(container=container, host=host)
+            logger.info("Stopping {container}".format(container=container))
+            subprocess.check_call(stop_cmd, shell=True, stdout=FNULL,
+                                  stderr=subprocess.STDOUT)
 
-        time.sleep(wait)
+            time.sleep(wait)
 
-        start_cmd = START_TEMPLATE.format(container=container, host=host)
-        subprocess.check_call(start_cmd, shell=True, stdout=FNULL,
-                              stderr=subprocess.STDOUT)
-        logger.info("Started {container}".format(container=container))
+            start_cmd = START_TEMPLATE.format(container=container, host=host)
+            subprocess.check_call(start_cmd, shell=True, stdout=FNULL,
+                                  stderr=subprocess.STDOUT)
+            logger.info("Started {container}".format(container=container))
 
-        # To allow Galera cluster to come back online before the next
-        # container is taken offline.
-        time.sleep(wait / 2)
-
-
-def show_services_only(aio, containers, multiple, wait):
-    """Output the services that will be restarted once --show is not passed.
-    Also output if the deployment lab is an All In One and what the wait
-    time is.
-    :param wait: is the number of seconds to wait between stopping and
-    starting a container
-    :param containers: The specific containers to disrupt based on service
-    :param aio: This is a flag to determine if the deployment is an aio
-    which determines if the host is localhost or looks for it in inventory
-    :return: Output what would be executed but does not execute the
-    rolling_restart.
-    """
-    if aio:
-        logger.info("Your deployment is an All In One")
-    if multiple:
-        print 'add the logic here'
-    else:
-        container_list = map(lambda x: x.encode('utf-8'), containers)
-        container_str = ', '.join(container_list)
-        logger.info("We will be stopping {container} for {wait} and then "
-                    "restarting them.".format(container=container_str,
-                                              wait=wait))
+            # To allow Galera cluster to come back online before the next
+            # container is taken offline.
+            time.sleep(wait / 2)
 
 
 def main():
@@ -234,12 +217,10 @@ def main():
     inventory = read_inventory(INVENTORY_FILE)
     containers = get_containers(service, inventory, multiple)
 
-    if show:
-        show_services_only(aio, containers, multiple, wait)
-    elif multiple:
+    if multiple:
         print "Add logic here"
     else:
-        rolling_restart(containers, inventory, aio, wait)
+        rolling_restart(containers, inventory, aio, show, wait)
 
 if __name__ == "__main__":
     main()
