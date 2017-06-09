@@ -26,3 +26,5 @@ Usage
         * -w specify the wait time between restarts. 
         * -s *required* this is the service to restart 
         * --aio this is required if you are on an All-In-One deployment 
+        * --show Show which services will be restarted, but takes no action
+        * --multiple Execute a rolling restart against multiple services simultanously. This will restart one container per service provided at a time.
