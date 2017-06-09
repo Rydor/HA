@@ -73,9 +73,19 @@ def args(arg_list):
     )
 
     parser.add_argument(
+        '-m',
+        '--multiple',
+        help='Execute a rolling restart against multiple services '
+             'simultaneously. This will only restart one container per service'
+             ' at a time.',
+        action='store_true'
+    )
+
+    parser.add_argument(
         '-s',
         '--service',
-        help='Name of the service to rolling restart.',
+        help='Name of the service to rolling restart. Valid services that can'
+             ' be passed in are {0}'.format(", ".join(supported_services)),
         metavar='N',
         nargs='+',
         required=True,
@@ -85,7 +95,7 @@ def args(arg_list):
 
     parser.add_argument(
         '--show',
-        help='Show which services will be restarted, but take no action',
+        help='Show which services will be restarted, but takes no action',
         action='store_true'
 
     )
@@ -144,10 +154,13 @@ def get_containers_by_group(target_group, inventory):
     return containers
 
 
-def get_containers(services, inventory):
+def get_containers(services, inventory, multiple):
     containers = []
     for i in services:
-        containers += get_containers_by_group(i, inventory)
+        if multiple:
+            containers.append(get_containers_by_group(i, inventory))
+        else:
+            containers += get_containers_by_group(i, inventory)
     return containers
 
 
@@ -185,7 +198,7 @@ def rolling_restart(containers, inventory, aio, wait=120):
         time.sleep(wait / 2)
 
 
-def show_services_only(containers, aio, wait):
+def show_services_only(aio, containers, multiple, wait):
     """Output the services that will be restarted once --show is not passed.
     Also output if the deployment lab is an All In One and what the wait
     time is.
@@ -199,10 +212,14 @@ def show_services_only(containers, aio, wait):
     """
     if aio:
         logger.info("Your deployment is an All In One")
-    container_list = map(lambda x: x.encode('utf-8'), containers)
-    container_str = ', '.join(container_list)
-    logger.info("We will be stopping {container} for {wait} and then "
-                "restarting them.".format(container=container_str, wait=wait))
+    if multiple:
+        print 'add the logic here'
+    else:
+        container_list = map(lambda x: x.encode('utf-8'), containers)
+        container_str = ', '.join(container_list)
+        logger.info("We will be stopping {container} for {wait} and then "
+                    "restarting them.".format(container=container_str,
+                                              wait=wait))
 
 
 def main():
@@ -211,13 +228,16 @@ def main():
     wait = all_args['wait']
     aio = all_args['aio']
     show = all_args['show']
+    multiple = all_args['multiple']
 
     configure_logging()
     inventory = read_inventory(INVENTORY_FILE)
-    containers = get_containers(service, inventory)
+    containers = get_containers(service, inventory, multiple)
 
     if show:
-        show_services_only(containers, aio, wait)
+        show_services_only(aio, containers, multiple, wait)
+    elif multiple:
+        print "Add logic here"
     else:
         rolling_restart(containers, inventory, aio, wait)
 
