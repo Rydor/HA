@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # Copyright 2017, Rackspace US, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -176,10 +177,10 @@ def rolling_restart(containers, inventory, aio, show, wait=120):
     """
     # Grab a handle to /dev/null so we don't pollute console output with
     # Ansible stuff
-    container_list = map(lambda x: x.encode('utf-8'), containers)
-    container_str = ', '.join(container_list)
+    #container_list = map(lambda x: x.encode('utf-8'), containers)
+    container_str = ', '.join(containers)
     logger.info("The following containers; {container} will be stopped for "
-                "{wait} and then restarted one after another.".format
+                "{wait} seconds and then restarted one after another.".format
                 (container=container_str, wait=wait))
     if not show:
         FNULL = open(os.devnull, 'w')
@@ -206,6 +207,30 @@ def rolling_restart(containers, inventory, aio, show, wait=120):
             time.sleep(wait / 2)
 
 
+def rolling_group_restarts(containers, inventory, aio, show, wait=120):
+    """Restart containers in numerical order, one at a time.
+    :param wait: is the number of seconds to wait between stopping and
+    starting a container
+    :param containers: The specific containers to disrupt based on service
+    :param inventory: Parsed inventory file
+    :param show: Only show what will be executed. Do not execute restarts.
+    :param aio: This is a flag to determine if the deployment is an aio
+    which determines if the host is localhost or looks for it in inventory
+    """
+    convert_unicode = [[str(row[i]) for row in containers] for i in range
+                       (len(containers[0]))]
+    n_list = []
+    for container_group in convert_unicode:
+        str_of_list = ' and '.join(container_group)
+        n_list.append(str_of_list)
+
+    _string = ''
+    for group in n_list:
+        _string += group + ' then '
+    logger.info("These services will be stopped in blocks as described here;"
+                " {0}started back up after being offline for {1} seconds.".format(_string, wait))
+
+
 def main():
     all_args = args(sys.argv[1:])
     service = all_args['service']
@@ -219,7 +244,7 @@ def main():
     containers = get_containers(service, inventory, multiple)
 
     if multiple:
-        print "Add logic here"
+        rolling_group_restarts(containers, inventory, aio, show, wait)
     else:
         rolling_restart(containers, inventory, aio, show, wait)
 
