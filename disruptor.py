@@ -107,6 +107,7 @@ def args(arg_list):
         help=("Number of seconds to wait between stopping and starting. "
               "Default: {0}".format(DEFAULT_WAIT)),
         default=DEFAULT_WAIT,
+        type=int
     )
 
     return vars(parser.parse_args(arg_list))
@@ -177,7 +178,6 @@ def rolling_restart(containers, inventory, aio, show, wait=120):
     """
     # Grab a handle to /dev/null so we don't pollute console output with
     # Ansible stuff
-    #container_list = map(lambda x: x.encode('utf-8'), containers)
     container_str = ', '.join(containers)
     logger.info("The following containers; {container} will be stopped for "
                 "{wait} seconds and then restarted one after another.".format
@@ -187,7 +187,6 @@ def rolling_restart(containers, inventory, aio, show, wait=120):
         for container in containers:
             if aio:
                 host = 'localhost'
-                logger.info("Your deployment is an All In One")
             else:
                 host = inventory['_meta']['hostvars'][container]['physical_host']
             stop_cmd = STOP_TEMPLATE.format(container=container, host=host)
@@ -225,10 +224,41 @@ def rolling_group_restarts(containers, inventory, aio, show, wait=120):
         n_list.append(str_of_list)
 
     _string = ''
-    for group in n_list:
+    for group in reversed(n_list):
         _string += group + ' then '
     logger.info("These services will be stopped in blocks as described here;"
-                " {0}started back up after being offline for {1} seconds.".format(_string, wait))
+                " {0}started back up after being offline for {1} seconds.".
+                format(_string, wait))
+
+    if not show:
+        FNULL = open(os.devnull, 'w')
+        for i in range(len(convert_unicode)):
+            sub_list = convert_unicode.pop()
+            for container in sub_list:
+                if aio:
+                    host = 'localhost'
+                else:
+                    host = inventory['_meta']['hostvars'][container]['physical_host']
+                stop_cmd = STOP_TEMPLATE.format(container=container, host=host)
+                logger.info("Stopping {container}".format(container=container))
+                subprocess.check_call(stop_cmd, shell=True, stdout=FNULL,
+                                      stderr=subprocess.STDOUT)
+
+            time.sleep(wait)
+
+            for container in sub_list:
+                if aio:
+                    host = 'localhost'
+                else:
+                    host = inventory['_meta']['hostvars'][container]['physical_host']
+                start_cmd = START_TEMPLATE.format(container=container, host=host)
+                subprocess.check_call(start_cmd, shell=True, stdout=FNULL,
+                                      stderr=subprocess.STDOUT)
+                logger.info("Started {container}".format(container=container))
+
+                # To allow Galera cluster to come back online before the next
+                # container is taken offline.
+            time.sleep(wait / 2)
 
 
 def main():
