@@ -20,7 +20,15 @@ class ReadInventoryTest(unittest.TestCase):
         self.assertEqual(self.inv, str(result))
         m.assert_called_once_with('/dev/null', 'r')
 
-# Run the tests
 
+class GetSimilarGroupsTest(unittest.TestCase):
+
+    def test_get_similar_groups(self):
+        inv = {"galera1": "1", "galera2": "2", "rabbitmq1": "1"}
+        result = disruptor.get_similar_groups("galera", inv)
+        self.assertEqual(['galera1', 'galera2'], result)
+
+
+# Run the tests
 if __name__ == '__main__':
         unittest.main()
