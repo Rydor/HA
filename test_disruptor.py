@@ -11,14 +11,14 @@ class ReadInventoryTest(unittest.TestCase):
         self.disruptor = disruptor
         self.inv = '{"_meta": {"host": {"galera": {"phys_host": "local"}}}}'
 
-    @patch("__builtin__.open", create=True)
-    def test_read_inventory_file(self, mo):
-        mo.side_effect = [
-            mock_open(read_data=self.inv).return_value
-        ]
-        execute = disruptor.read_inventory("/dev/null")
-        result = json.dumps(execute)
+    def test_read_inventory_file(self):
+        # Mock the open file read and provide the self.inv as a return value.
+        with patch("__builtin__.open", mock_open(read_data=self.inv),
+                   create=True) as m:
+            h = disruptor.read_inventory('/dev/null')
+            result = json.dumps(h)
         self.assertEqual(self.inv, str(result))
+        m.assert_called_once_with('/dev/null', 'r')
 
 # Run the tests
 
