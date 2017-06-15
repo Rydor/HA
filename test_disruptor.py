@@ -45,6 +45,22 @@ class GetSimilarGroupsTest(unittest.TestCase):
         self.assertEqual(['galera1', 'galera2'], result)
 
 
+class GetContainersByGroupTest(unittest.TestCase):
+
+    def setUp(self):
+        self.inv = {"galera": {"hosts": ["g_host1", "g_host2"]},
+                    "rabbit": {"hosts": ["r_host1", "r_host2"]}}
+
+    def test_get_containers_by_group(self):
+        result = disruptor.get_containers_by_group("galera", self.inv)
+        self.assertEqual(["g_host1", "g_host2"], result)
+
+    def test_get_containers_by_group_not_present(self):
+        with self.assertRaises(SystemExit) as cm:
+            disruptor.get_containers_by_group("missing_service", self.inv)
+        self.assertEqual(cm.exception.code, 1)
+
+
 # Run the tests
 if __name__ == '__main__':
         unittest.main()
