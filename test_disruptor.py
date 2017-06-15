@@ -18,6 +18,8 @@
 import unittest
 import disruptor
 import json
+import sys
+import os
 from mock import Mock, mock_open, patch
 
 
@@ -56,8 +58,11 @@ class GetContainersByGroupTest(unittest.TestCase):
         self.assertEqual(["g_host1", "g_host2"], result)
 
     def test_get_containers_by_group_not_present(self):
+        # Catch the sys.exit(1) which results
         with self.assertRaises(SystemExit) as cm:
-            disruptor.get_containers_by_group("missing_service", self.inv)
+            # In order to silence the print from get_containers_by_group func.
+            sys.stdout = open(os.devnull, 'w')
+            disruptor.get_containers_by_group("service", self.inv)
         self.assertEqual(cm.exception.code, 1)
 
 
