@@ -156,12 +156,14 @@ def get_containers_by_group(target_group, inventory):
     return containers
 
 
-def get_containers(services, inventory, multiple):
+def get_containers(services, inventory, multiple=False):
     containers = []
     for i in services:
         if multiple:
+            # returns [[g1,g2,g3], [r1,r2,r3]]
             containers.append(get_containers_by_group(i, inventory))
         else:
+            # returns [g1,g2,g3,r1,r2,r3]
             containers += get_containers_by_group(i, inventory)
     return containers
 

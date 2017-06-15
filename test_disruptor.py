@@ -61,6 +61,28 @@ class GetContainersByGroupTest(unittest.TestCase):
         self.assertEqual(cm.exception.code, 1)
 
 
+class GetContainersTest(unittest.TestCase):
+
+    def setUp(self):
+        self.inv = {"galera": {"hosts": ["g_host1", "g_host2"]},
+                    "rabbit": {"hosts": ["r_host1", "r_host2"]}}
+
+    def test_get_containers_single(self):
+        result = disruptor.get_containers(["galera"], self.inv)
+        self.assertEqual(["g_host1", "g_host2"], result)
+
+    def test_get_containers_multiple_services(self):
+        result = disruptor.get_containers(["galera", "rabbit"], self.inv)
+        self.assertEqual(["g_host1", "g_host2", "r_host1", "r_host2"], result)
+
+    def test_get_containers_multiple_flag(self):
+        result = disruptor.get_containers(["galera"], self.inv, True)
+        self.assertEqual([['g_host1', 'g_host2']], result)
+
+    def test_get_containers_mutiple_services_and_flag(self):
+        res = disruptor.get_containers(["galera", "rabbit"], self.inv, True)
+        self.assertEqual([['g_host1', 'g_host2'], ['r_host1', 'r_host2']], res)
+
 # Run the tests
 if __name__ == '__main__':
         unittest.main()
