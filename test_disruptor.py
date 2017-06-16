@@ -20,7 +20,8 @@ import disruptor
 import json
 import sys
 import os
-from mock import Mock, mock_open, patch
+import subprocess
+from mock import mock, mock_open, patch
 
 
 class ReadInventoryTest(unittest.TestCase):
@@ -87,6 +88,26 @@ class GetContainersTest(unittest.TestCase):
     def test_get_containers_mutiple_services_and_flag(self):
         res = disruptor.get_containers(["galera", "rabbit"], self.inv, True)
         self.assertEqual([['g_host1', 'g_host2'], ['r_host1', 'r_host2']], res)
+
+
+class RollingRestartTest(unittest.TestCase):
+
+    def setUp(self):
+        self.inv = {"galera": {"hosts": ["g_host1", "g_host2"]},
+                    "rabbit": {"hosts": ["r_host1", "r_host2"]}}
+
+    @patch('subprocess.check_call')
+    def test_rolling_restart(self, mock_cc):
+        mock_cc.return_value = 0
+        h = disruptor.rolling_restart(["galera"], self.inv, aio=True, show=False, wait=2)
+        self.assertEqual(mock_cc.call_count, 2)
+
+    @patch('subprocess.check_call')
+    def test_rolling_restart2(self, mock_cc):
+        mock_cc.return_value = 0
+        h = disruptor.rolling_restart(["galera"], self.inv, aio=True, show=True, wait=2)
+        self.assertEqual(mock_cc.call_count, 0)
+        
 
 # Run the tests
 if __name__ == '__main__':
