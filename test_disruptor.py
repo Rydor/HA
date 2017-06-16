@@ -99,15 +99,15 @@ class RollingRestartTest(unittest.TestCase):
     @patch('subprocess.check_call')
     def test_rolling_restart(self, mock_cc):
         mock_cc.return_value = 0
-        h = disruptor.rolling_restart(["galera"], self.inv, aio=True, show=False, wait=2)
+        h = disruptor.rolling_restart(["galera"], self.inv, wait=2)
         self.assertEqual(mock_cc.call_count, 2)
 
     @patch('subprocess.check_call')
     def test_rolling_restart2(self, mock_cc):
         mock_cc.return_value = 0
-        h = disruptor.rolling_restart(["galera"], self.inv, aio=True, show=True, wait=2)
+        h = disruptor.rolling_restart(["galera"], self.inv, show=True, wait=2)
         self.assertEqual(mock_cc.call_count, 0)
-        
+
 
 # Run the tests
 if __name__ == '__main__':
