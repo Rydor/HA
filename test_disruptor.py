@@ -193,13 +193,22 @@ class RollingGroupRestartsTest(unittest.TestCase):
         self.assertEqual(mock_cc.call_count, 0)
 
     @patch('subprocess.check_call')
-    def test_rolling_group_restarts_aio_False_show_false(self, mock_cc):
+    def test_rolling_group_restarts_aio_false_show_false(self, mock_cc):
         mock_cc.return_value = 0
         h = disruptor.rolling_group_restarts(
             [["galera_container1", "galera_container2"],
              ["rabbitmq_container1", "rabbitmq_container2"]], self.inv,
             wait=2)
         self.assertEqual(mock_cc.call_count, 8)
+
+    @patch('subprocess.check_call')
+    def test_rolling_group_restart_aio_false_show_true(self, mock_cc):
+        mock_cc.return_value = 0
+        h = disruptor.rolling_group_restarts(
+            [["galera_container1", "galera_container2"],
+             ["rabbitmq_container1", "rabbitmq_container2"]], self.inv,
+            show=True, wait=2)
+        self.assertEqual(mock_cc.call_count, 0)
 
 # Run the tests
 if __name__ == '__main__':
