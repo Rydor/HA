@@ -93,81 +93,113 @@ class GetContainersTest(unittest.TestCase):
 class RollingRestartTest(unittest.TestCase):
 
     def setUp(self):
-        self.inv = {"galera": {"hosts": ["g_host1", "g_host2"]},
-                    "rabbit": {"hosts": ["r_host1", "r_host2"]}}
         self.inventory = {
             "_meta": {
                 "hostvars": {
-                    "galera": {
-                        "physical_host": "localhost"
+                    "galera_container1": {
+                        "physical_host": "infra1"
                     },
-                    "rabbitmq": {
-                        "physical_host": "localhost"
+                    "galera_container2": {
+                        "physical_host": "infra2"
+                    },
+                    "rabbitmq_container1": {
+                        "physical_host": "infra1"
+                    },
+                    "rabbitmq_container2": {
+                        "physical_host": "infra2"
                     }
                 }
-            }
+            },
+            "galera": {"hosts": ["galera_container1", "galera_container2"]},
+            "rabbitmq": {"hosts": ["rabbitmq_container1", "rabbitmq_container2"]}
         }
 
     @patch('subprocess.check_call')
     def test_rolling_restart_aio_true_show_false(self, mock_cc):
         mock_cc.return_value = 0
-        h = disruptor.rolling_restart(["galera"], self.inv, wait=2)
-        self.assertEqual(mock_cc.call_count, 2)
+        h = disruptor.rolling_restart(
+            ["galera_container1", "galera_container2", "rabbitmq_container1",
+             "rabbitmq_container2"], self.inventory, aio=True, wait=2)
+        self.assertEqual(mock_cc.call_count, 8)
 
     @patch('subprocess.check_call')
     def test_rolling_restart_aio_true_show_true(self, mock_cc):
         mock_cc.return_value = 0
-        h = disruptor.rolling_restart(["galera"], self.inv, show=True, wait=2)
+        h = disruptor.rolling_restart(["galera", "rabbitmq"], self.inventory,
+                                      aio=True, show=True, wait=2)
         self.assertEqual(mock_cc.call_count, 0)
 
     # Added coverage for the aio=false scenarios. Need more accurate self.inv.
     @patch('subprocess.check_call')
     def test_rolling_restart_aio_false_show_false(self, mock_cc):
         mock_cc.return_value = 0
-        h = disruptor.rolling_restart(["galera"], self.inventory,
-                                      aio=False, wait=2)
-        self.assertEqual(mock_cc.call_count, 2)
+        h = disruptor.rolling_restart(
+            ["galera_container1", "galera_container2", "rabbitmq_container1",
+             "rabbitmq_container2"], self.inventory, wait=2)
+        self.assertEqual(mock_cc.call_count, 8)
 
     @patch('subprocess.check_call')
     def test_rolling_restart_aio_false_show_true(self, mock_cc):
         mock_cc.return_value = 0
-        h = disruptor.rolling_restart(["galera"], self.inventory,
-                                      aio=False, show=True, wait=2)
+        h = disruptor.rolling_restart(
+            ["galera_container1", "galera_container2", "rabbitmq_container1",
+             "rabbitmq_container2"], self.inventory, aio=False, show=True,
+            wait=2)
         self.assertEqual(mock_cc.call_count, 0)
 
 
 class RollingGroupRestartsTest(unittest.TestCase):
 
     def setUp(self):
-        self.inv = {"galera": {"hosts": ["g_host1", "g_host2"]},
-                    "rabbit": {"hosts": ["r_host1", "r_host2"]}}
-        self.inventory = {
+        # self.inv = {"galera": {"hosts": ["g_host1", "g_host2"]},
+        #             "rabbit": {"hosts": ["r_host1", "r_host2"]}}
+        self.inv = {
             "_meta": {
                 "hostvars": {
-                    "galera": {
-                        "physical_host": "localhost"
+                    "galera_container1": {
+                        "physical_host": "infra1"
                     },
-                    "rabbitmq": {
-                        "physical_host": "localhost"
+                    "galera_container2": {
+                        "physical_host": "infra2"
+                    },
+                    "rabbitmq_container1": {
+                        "physical_host": "infra1"
+                    },
+                    "rabbitmq_container2": {
+                        "physical_host": "infra2"
                     }
                 }
-            }
+            },
+            "galera": {"hosts": ["galera_container1", "galera_container2"]},
+            "rabbitmq": {"hosts": ["rabbitmq_container1", "rabbitmq_container2"]}
         }
 
     @patch('subprocess.check_call')
     def test_rolling_group_restarts_aio_true_show_false(self, mock_cc):
         mock_cc.return_value = 0
         h = disruptor.rolling_group_restarts(
-            [['g_host1', 'g_host2'], ['r_host1', 'r_host2']], self.inv, wait=2)
+            [["galera_container1", "galera_container2"],
+             ["rabbitmq_container1", "rabbitmq_container2"]], self.inv,
+            aio=True, wait=2)
         self.assertEqual(mock_cc.call_count, 8)
 
     @patch('subprocess.check_call')
     def test_rolling_group_restarts_aio_true_show_true(self, mock_cc):
         mock_cc.return_value = 0
         h = disruptor.rolling_group_restarts(
-            [['g_host1', 'g_host2'], ['r_host1', 'r_host2']], self.inv,
-            show=True, wait=2)
+            [["galera_container1", "galera_container2"],
+             ["rabbitmq_container1", "rabbitmq_container2"]], self.inv,
+            aio=True, show=True, wait=2)
         self.assertEqual(mock_cc.call_count, 0)
+
+    @patch('subprocess.check_call')
+    def test_rolling_group_restarts_aio_False_show_false(self, mock_cc):
+        mock_cc.return_value = 0
+        h = disruptor.rolling_group_restarts(
+            [["galera_container1", "galera_container2"],
+             ["rabbitmq_container1", "rabbitmq_container2"]], self.inv,
+            wait=2)
+        self.assertEqual(mock_cc.call_count, 8)
 
 # Run the tests
 if __name__ == '__main__':

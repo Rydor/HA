@@ -168,7 +168,7 @@ def get_containers(services, inventory, multiple=False):
     return containers
 
 
-def rolling_restart(containers, inventory, aio=True, show=False, wait=120):
+def rolling_restart(containers, inventory, aio=False, show=False, wait=120):
     """Restart containers in numerical order, one at a time.
     :param wait: is the number of seconds to wait between stopping and
     starting a container
@@ -208,7 +208,7 @@ def rolling_restart(containers, inventory, aio=True, show=False, wait=120):
             time.sleep(wait / 2)
 
 
-def rolling_group_restarts(containers, inventory, aio=True, show=False, wait=120):
+def rolling_group_restarts(containers, inventory, aio=False, show=False, wait=120):
     """Restart containers in numerical order, one at a time.
     :param wait: is the number of seconds to wait between stopping and
     starting a container
