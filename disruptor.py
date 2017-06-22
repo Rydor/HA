@@ -38,14 +38,17 @@ STOP_TEMPLATE = 'ansible -i inventory -m shell -a\
 START_TEMPLATE = 'ansible -i inventory -m shell -a\
         "lxc-start -dn {container}" {host}'
 
-supported_services = ['rabbitmq', 'galera']
+SUPPORTED_SERVICES = ['rabbitmq', 'galera']
 DEFAULT_WAIT = 120
 
 
 def configure_logging():
+    """
+    This sets up the logging for program.
+    """
     logger.setLevel(logging.INFO)
     console = logging.StreamHandler()
-    logfile = logging.FileHandler('/var/log/rolling_restart.log', 'a')
+    logfile = logging.FileHandler('/var/log/restart.log', 'a')
 
     console.setLevel(logging.INFO)
     logfile.setLevel(logging.INFO)
@@ -62,6 +65,10 @@ def configure_logging():
 
 
 def args(arg_list):
+    """
+    These are the arguments for the disruptor programe.
+    :param arg_list: List of arguments provided.
+    """
     parser = argparse.ArgumentParser(
         usage='%(prog)s',
         description='OpenStack-Ansible Rolling Update Simulator',
@@ -86,12 +93,12 @@ def args(arg_list):
         '-s',
         '--service',
         help='Name of the service to rolling restart. Valid services that can'
-             ' be passed in are {0}'.format(", ".join(supported_services)),
+             ' be passed in are {0}'.format(", ".join(SUPPORTED_SERVICES)),
         metavar='N',
         nargs='+',
         required=True,
         default=None,
-        choices=supported_services
+        choices=SUPPORTED_SERVICES
     )
 
     parser.add_argument(
@@ -117,8 +124,8 @@ def read_inventory(inventory_file):
     """Parse inventory file into a python dictionary
     :param inventory_file -- indicates the location of inventory file
     """
-    with open(inventory_file, 'r') as f:
-        inventory = json.load(f)
+    with open(inventory_file, 'r') as openfile:
+        inventory = json.load(openfile)
     return inventory
 
 
@@ -145,10 +152,10 @@ def get_containers_by_group(target_group, inventory):
 
     if group is None:
         groups = get_similar_groups(target_group, inventory)
-        print("No group {} found.".format(target_group))
+        print "No group {} found.".format(target_group)
         if groups:
-            print("Maybe try one of these:")
-            print("\n".join(groups))
+            print "Maybe try one of these:"
+            print"\n".join(groups)
         sys.exit(1)
 
     containers = group['hosts']
@@ -157,6 +164,14 @@ def get_containers_by_group(target_group, inventory):
 
 
 def get_containers(services, inventory, multiple=False):
+    """
+    This is where we take a list of services, iterate through them and
+    pass them to the get_containers_by_group function.
+    :param services: List of services that we want their containers for.
+    :param inventory: The json which has the entire environment defined.
+    :param multiple: This is a flag used to determine how the services
+    will be organized and returned.
+    """
     containers = []
     for i in services:
         if multiple:
@@ -181,34 +196,36 @@ def rolling_restart(containers, inventory, aio=False, show=False, wait=120):
     # Grab a handle to /dev/null so we don't pollute console output with
     # Ansible stuff
     container_str = ', '.join(containers)
-    logger.info("The following containers; {container} will be stopped for "
-                "{wait} seconds and then restarted one after another.".format
-                (container=container_str, wait=wait))
+    logger.info("The following containers; %s will be stopped for "
+                "%r seconds and then restarted one after another.",
+                container_str, wait)
     if not show:
-        FNULL = open(os.devnull, 'w')
+        file_null = open(os.devnull, 'w')
         for container in containers:
             if aio:
                 host = 'localhost'
             else:
-                host = inventory['_meta']['hostvars'][container]['physical_host']
+                host = inventory['_meta']['hostvars'][container][
+                    'physical_host']
             stop_cmd = STOP_TEMPLATE.format(container=container, host=host)
-            logger.info("Stopping {container}".format(container=container))
-            subprocess.check_call(stop_cmd, shell=True, stdout=FNULL,
+            logger.info("Stopping %s ", container)
+            subprocess.check_call(stop_cmd, shell=True, stdout=file_null,
                                   stderr=subprocess.STDOUT)
 
             time.sleep(wait)
 
             start_cmd = START_TEMPLATE.format(container=container, host=host)
-            subprocess.check_call(start_cmd, shell=True, stdout=FNULL,
+            subprocess.check_call(start_cmd, shell=True, stdout=file_null,
                                   stderr=subprocess.STDOUT)
-            logger.info("Started {container}".format(container=container))
+            logger.info("Started %s", container)
 
             # To allow Galera cluster to come back online before the next
             # container is taken offline.
             time.sleep(wait / 2)
 
 
-def rolling_group_restarts(containers, inventory, aio=False, show=False, wait=120):
+def rolling_group_restarts(containers, inventory, aio=False, show=False,
+                           wait=120):
     """Restart containers in numerical order, one at a time.
     :param wait: is the number of seconds to wait between stopping and
     starting a container
@@ -229,21 +246,22 @@ def rolling_group_restarts(containers, inventory, aio=False, show=False, wait=12
     for group in reversed(n_list):
         _string += group + ' then '
     logger.info("These services will be stopped in blocks as described here;"
-                " {0}started back up after being offline for {1} seconds.".
-                format(_string, wait))
+                " %sstarted back up after being offline for %r seconds.",
+                _string, wait)
 
     if not show:
-        FNULL = open(os.devnull, 'w')
+        fill_null = open(os.devnull, 'w')
         for i in range(len(convert_unicode)):
             sub_list = convert_unicode.pop()
             for container in sub_list:
                 if aio:
                     host = 'localhost'
                 else:
-                    host = inventory['_meta']['hostvars'][container]['physical_host']
+                    host = inventory['_meta']['hostvars'][container][
+                        'physical_host']
                 stop_cmd = STOP_TEMPLATE.format(container=container, host=host)
-                logger.info("Stopping {container}".format(container=container))
-                subprocess.check_call(stop_cmd, shell=True, stdout=FNULL,
+                logger.info("Stopping %s", container)
+                subprocess.check_call(stop_cmd, shell=True, stdout=fill_null,
                                       stderr=subprocess.STDOUT)
 
             time.sleep(wait)
@@ -252,11 +270,13 @@ def rolling_group_restarts(containers, inventory, aio=False, show=False, wait=12
                 if aio:
                     host = 'localhost'
                 else:
-                    host = inventory['_meta']['hostvars'][container]['physical_host']
-                start_cmd = START_TEMPLATE.format(container=container, host=host)
-                subprocess.check_call(start_cmd, shell=True, stdout=FNULL,
+                    host = inventory['_meta']['hostvars'][container][
+                        'physical_host']
+                start_cmd = START_TEMPLATE.format(container=container,
+                                                  host=host)
+                subprocess.check_call(start_cmd, shell=True, stdout=fill_null,
                                       stderr=subprocess.STDOUT)
-                logger.info("Started {container}".format(container=container))
+                logger.info("Started %s", container)
 
                 # To allow Galera cluster to come back online before the next
                 # container is taken offline.
@@ -264,6 +284,9 @@ def rolling_group_restarts(containers, inventory, aio=False, show=False, wait=12
 
 
 def main():
+    """
+    main function used to execute the program.
+    """
     all_args = args(sys.argv[1:])
     service = all_args['service']
     wait = all_args['wait']
@@ -279,6 +302,7 @@ def main():
         rolling_group_restarts(containers, inventory, aio, show, wait)
     else:
         rolling_restart(containers, inventory, aio, show, wait)
+
 
 if __name__ == "__main__":
     main()
