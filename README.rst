@@ -6,8 +6,13 @@ About
 
 Dir
 -----
-* disruptor.py is the primary tool used for disrupting the RabbitMQ and Galera clusters.
 * ./rally_tasks/nova_create_delete.yaml is the task rally will run. It builds and deletes 200 instances and tracks the success rate.
+* disruptor.py is the primary tool used for disrupting the RabbitMQ and Galera clusters.
+* LICENSE is the apache license agreement.
+* README.rst is this file.
+* requirements.txt is a list of all required pip libraries. Installable via pip install -r requiremnts.
+* test_disruptor.py are the unit tests for disruptor.py.
+
 
 Dependencies
 -----
